@@ -22,8 +22,8 @@ const palavrasAnimadas = [
 
 const frasesHero = [
   {
-    linha1: <><span className="text-[#ff2350]">1</span> treinamento</>,
-    linha2: <><span className="text-[#ff2350]">4</span> horas de conteúdo</>,
+    linha1: <><span className="text-[#ff2350]">1</span> Treinamento</>,
+    linha2: <><span className="text-[#ff2350]">4</span> Horas de conteúdo</>,
     linha3: <><span className="text-[#ff2350]">100%</span> aplicável</>
   },
   {
