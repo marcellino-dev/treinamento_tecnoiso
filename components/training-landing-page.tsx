@@ -10,14 +10,13 @@ const learningItems = ["Estrutura e elementos de um certificado de calibração"
 const fadeUp = { hidden: { opacity: 0, y: 25 }, visible: { opacity: 1, y: 0 } }
 
 const palavrasAnimadas = [
-  "seguras",
-  "assertivas",
-  "precisas",
-  "estratégicas",
-  "embasadas",
-  "inteligentes",
-  "eficientes",
-  "seguras e precisas"
+ "seguras",
+"assertivas",
+"precisas",
+"estratégicas",
+"confiáveis",
+"inteligentes",
+"eficientes",
 ]
 
 const frasesHero = [
