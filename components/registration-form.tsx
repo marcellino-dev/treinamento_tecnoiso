@@ -18,7 +18,75 @@ export function RegistrationForm() {
   const next = (event: FormEvent) => { event.preventDefault(); if (data.nome.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) && onlyDigits(data.telefone).length >= 10) setStep(2) }
   async function submit(event: FormEvent) { event.preventDefault(); if (onlyDigits(data.cnpj).length !== 14 || !data.razaoSocial.trim() || !data.setor.trim()) return; setStatus("sending"); try { const response = await fetch("/api/inscricao", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }); if (!response.ok) throw new Error(); setStatus("success") } catch { setStatus("error") } }
   if (status === "success") return <div className="rounded-2xl bg-white p-8 text-center text-[#202020] shadow-xl"><div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#e72d64] text-3xl text-white">✓</div><p className="mt-5 text-xs font-bold uppercase tracking-[.2em] text-[#e72d64]">Inscrição confirmada</p><h3 className="mt-2 text-3xl font-black">Até breve, {data.nome.split(" ")[0]}.</h3><p className="mx-auto mt-3 max-w-md text-sm text-black/60">Recebemos seus dados e enviamos a confirmação para <strong>{data.email}</strong>.</p></div>
-  return <form onSubmit={step === 1 ? next : submit} className="grid gap-5 rounded-2xl bg-white p-6 text-[#202020] shadow-xl sm:p-9"><div className="flex items-center gap-3 text-sm font-bold"><span className="grid h-8 w-8 place-items-center rounded-full bg-[#e72d64] text-white">{step}</span>{step === 1 ? "Dados pessoais" : "Dados da empresa"}<span className="ml-auto text-xs font-normal text-black/40">Etapa {step} de 2</span></div>{step === 1 ? <div className="grid gap-4 sm:grid-cols-2"><label className="grid gap-2 text-sm font-semibold">Nome completo *<input required value={data.nome} onChange={update("nome")} className={inputClass} placeholder="Seu nome completo" /></label><label className="grid gap-2 text-sm font-semibold">E-mail *<input required type="email" value={data.email} onChange={update("email")} className={inputClass} placeholder="seu@email.com" /></label><label className="grid gap-2 text-sm font-semibold sm:col-span-2">Telefone celular *<input required inputMode="tel" pattern="\\(\\d{2}\\) \\d{4,5}-\\d{4}" value={data.telefone} onChange={updateFormatted("telefone")} className={inputClass} placeholder="(47) 99999-9999" /></label><button className="rounded-full bg-[#e72d64] px-6 py-3 text-sm font-bold text-white sm:col-span-2">Continuar para dados da empresa →</button></div> : <div className="grid gap-4 sm:grid-cols-2"><label className="grid gap-2 text-sm font-semibold">CNPJ *<input required inputMode="numeric" pattern="\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}" value={data.cnpj} onChange={updateFormatted("cnpj")} className={inputClass} placeholder="00.000.000/0000-00" /></label><label className="grid gap-2 text-sm font-semibold">Razão social *<input required value={data.razaoSocial} onChange={update("razaoSocial")} className={inputClass} placeholder="Nome da empresa" /></label><label className="grid gap-2 text-sm font-semibold sm:col-span-2">Setor / Departamento *<input required value={data.setor} onChange={update("setor")} className={inputClass} placeholder="Ex.: Qualidade, Produção" /></label><label className="grid gap-2 text-sm font-semibold">Telefone da empresa <input inputMode="tel" pattern="\\(\\d{2}\\) \\d{4,5}-\\d{4}" value={data.telefoneEmpresa} onChange={updateFormatted("telefoneEmpresa")} className={inputClass} placeholder="(47) 99999-9999" /></label><label className="grid gap-2 text-sm font-semibold">Estado <input list="estados-brasil" value={data.estado} onChange={(event) => loadCities(event.target.value)} className={inputClass} placeholder="Digite ou selecione o estado" /><datalist id="estados-brasil">{states.map((state) => <option key={state} value={state} />)}</datalist></label><label className="grid gap-2 text-sm font-semibold">Cidade <input list="cidades-brasil" value={data.cidade} onChange={update("cidade")} className={inputClass} placeholder="Digite ou selecione a cidade" /><datalist id="cidades-brasil">{cities.map((city) => <option key={city} value={city} />)}</datalist></label><div className="flex gap-3 sm:col-span-2"><button type="button" onClick={() => setStep(1)} className="rounded-full border border-black/15 px-5 py-3 text-sm font-bold">Voltar</button><button disabled={status === "sending"} className="flex-1 rounded-full bg-[#e72d64] px-6 py-3 text-sm font-bold text-white">{status === "sending" ? "Enviando..." : "Finalizar inscrição →"}</button></div>{status === "error" && <p className="text-sm font-semibold text-red-600 sm:col-span-2">Não foi possível enviar. Tente novamente.</p>}</div>}</form>
+  
+  return <form onSubmit={step === 1 ? next : submit} className="grid gap-5 rounded-2xl bg-white p-6 text-[#202020] shadow-xl sm:p-9">
+    <div className="flex items-center gap-3 text-sm font-bold"><span className="grid h-8 w-8 place-items-center rounded-full bg-[#e72d64] text-white">{step}</span>{step === 1 ? "Dados pessoais" : "Dados da empresa"}<span className="ml-auto text-xs font-normal text-black/40">Etapa {step} de 2</span></div>
+    
+    {step === 1 ? 
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="grid gap-2 text-sm font-semibold">Nome completo *<input required value={data.nome} onChange={update("nome")} className={inputClass} placeholder="Seu nome completo" /></label>
+        <label className="grid gap-2 text-sm font-semibold">E-mail *<input required type="email" value={data.email} onChange={update("email")} className={inputClass} placeholder="seu@email.com" /></label>
+        
+        {/* TELEFONE CORRIGIDO: pattern flexível e title explicativo */}
+        <label className="grid gap-2 text-sm font-semibold sm:col-span-2">
+          Telefone celular *
+          <input 
+            required 
+            type="text" 
+            inputMode="tel" 
+            pattern="\(?\d{2}\)?\s?\d{4,5}-?\d{4}" 
+            title="Digite o telefone no formato (XX) XXXXX-XXXX"
+            value={data.telefone} 
+            onChange={updateFormatted("telefone")} 
+            className={inputClass} 
+            placeholder="(47) 99999-9999" 
+          />
+        </label>
+        
+        <button className="rounded-full bg-[#e72d64] px-6 py-3 text-sm font-bold text-white sm:col-span-2">Continuar para dados da empresa →</button>
+      </div> 
+    : 
+      <div className="grid gap-4 sm:grid-cols-2">
+        {/* CNPJ CORRIGIDO: pattern flexível */}
+        <label className="grid gap-2 text-sm font-semibold">
+          CNPJ *
+          <input 
+            required 
+            type="text"
+            inputMode="numeric" 
+            pattern="\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}" 
+            title="Digite o CNPJ no formato 00.000.000/0000-00"
+            value={data.cnpj} 
+            onChange={updateFormatted("cnpj")} 
+            className={inputClass} 
+            placeholder="00.000.000/0000-00" 
+          />
+        </label>
+        <label className="grid gap-2 text-sm font-semibold">Razão social *<input required value={data.razaoSocial} onChange={update("razaoSocial")} className={inputClass} placeholder="Nome da empresa" /></label>
+        <label className="grid gap-2 text-sm font-semibold sm:col-span-2">Setor / Departamento *<input required value={data.setor} onChange={update("setor")} className={inputClass} placeholder="Ex.: Qualidade, Produção" /></label>
+        
+        {/* TELEFONE EMPRESA CORRIGIDO */}
+        <label className="grid gap-2 text-sm font-semibold">
+          Telefone da empresa 
+          <input 
+            type="text" 
+            inputMode="tel" 
+            pattern="\(?\d{2}\)?\s?\d{4,5}-?\d{4}" 
+            title="Digite o telefone no formato (XX) XXXXX-XXXX"
+            value={data.telefoneEmpresa} 
+            onChange={updateFormatted("telefoneEmpresa")} 
+            className={inputClass} 
+            placeholder="(47) 99999-9999" 
+          />
+        </label>
+        
+        <label className="grid gap-2 text-sm font-semibold">Estado <input list="estados-brasil" value={data.estado} onChange={(event) => loadCities(event.target.value)} className={inputClass} placeholder="Digite ou selecione o estado" /><datalist id="estados-brasil">{states.map((state) => <option key={state} value={state} />)}</datalist></label>
+        <label className="grid gap-2 text-sm font-semibold">Cidade <input list="cidades-brasil" value={data.cidade} onChange={update("cidade")} className={inputClass} placeholder="Digite ou selecione a cidade" /><datalist id="cidades-brasil">{cities.map((city) => <option key={city} value={city} />)}</datalist></label>
+        <div className="flex gap-3 sm:col-span-2"><button type="button" onClick={() => setStep(1)} className="rounded-full border border-black/15 px-5 py-3 text-sm font-bold">Voltar</button><button disabled={status === "sending"} className="flex-1 rounded-full bg-[#e72d64] px-6 py-3 text-sm font-bold text-white">{status === "sending" ? "Enviando..." : "Finalizar inscrição →"}</button></div>
+        {status === "error" && <p className="text-sm font-semibold text-red-600 sm:col-span-2">Não foi possível enviar. Tente novamente.</p>}
+      </div>
+    }
+  </form>
 }
 
 export default RegistrationForm
