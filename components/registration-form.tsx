@@ -2,8 +2,30 @@
 
 import { FormEvent, useState } from "react"
 
-type FormData = { nome: string; email: string; telefone: string; cnpj: string; razaoSocial: string; setor: string; telefoneEmpresa: string; cidade: string; estado: string }
-const initialData: FormData = { nome: "", email: "", telefone: "", cnpj: "", razaoSocial: "", setor: "", telefoneEmpresa: "", cidade: "", estado: "" }
+type FormData = { 
+  nome: string; 
+  email: string; 
+  telefone: string; 
+  cnpj: string; 
+  razaoSocial: string; 
+  setor: string; 
+  telefoneEmpresa: string; 
+  cidade: string; 
+  estado: string;
+  tipoCliente: string; // NOVO CAMPO
+}
+const initialData: FormData = { 
+  nome: "", 
+  email: "", 
+  telefone: "", 
+  cnpj: "", 
+  razaoSocial: "", 
+  setor: "", 
+  telefoneEmpresa: "", 
+  cidade: "", 
+  estado: "",
+  tipoCliente: "" // NOVO CAMPO
+}
 const states = ["AC - Acre", "AL - Alagoas", "AP - Amapá", "AM - Amazonas", "BA - Bahia", "CE - Ceará", "DF - Distrito Federal", "ES - Espírito Santo", "GO - Goiás", "MA - Maranhão", "MT - Mato Grosso", "MS - Mato Grosso do Sul", "MG - Minas Gerais", "PA - Pará", "PB - Paraíba", "PR - Paraná", "PE - Pernambuco", "PI - Piauí", "RJ - Rio de Janeiro", "RN - Rio Grande do Norte", "RS - Rio Grande do Sul", "RO - Rondônia", "RR - Roraima", "SC - Santa Catarina", "SP - São Paulo", "SE - Sergipe", "TO - Tocantins"]
 const inputClass = "w-full rounded-lg border border-black/15 px-4 py-3 outline-none transition focus:border-[#e72d64]"
 const onlyDigits = (value: string) => value.replace(/\D/g, "")
@@ -16,7 +38,7 @@ export function RegistrationForm() {
   const updateFormatted = (field: "telefone" | "telefoneEmpresa" | "cnpj") => (event: React.ChangeEvent<HTMLInputElement>) => setData((current) => ({ ...current, [field]: field === "cnpj" ? formatCnpj(event.target.value) : formatPhone(event.target.value) }))
   async function loadCities(state: string) { const uf = state.slice(0, 2); setData((current) => ({ ...current, estado: state, cidade: "" })); if (!uf) return; try { const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`); const result = await response.json(); setCities(result.map((city: { nome: string }) => city.nome)) } catch { setCities([]) } }
   const next = (event: FormEvent) => { event.preventDefault(); if (data.nome.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) && onlyDigits(data.telefone).length >= 10) setStep(2) }
-  async function submit(event: FormEvent) { event.preventDefault(); if (onlyDigits(data.cnpj).length !== 14 || !data.razaoSocial.trim() || !data.setor.trim()) return; setStatus("sending"); try { const response = await fetch("/api/inscricao", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }); if (!response.ok) throw new Error(); setStatus("success") } catch { setStatus("error") } }
+  async function submit(event: FormEvent) { event.preventDefault(); if (onlyDigits(data.cnpj).length !== 14 || !data.razaoSocial.trim() || !data.setor.trim() || !data.tipoCliente) return; setStatus("sending"); try { const response = await fetch("/api/inscricao", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }); if (!response.ok) throw new Error(); setStatus("success") } catch { setStatus("error") } }
   if (status === "success") return <div className="rounded-2xl bg-white p-8 text-center text-[#202020] shadow-xl"><div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#e72d64] text-3xl text-white">✓</div><p className="mt-5 text-xs font-bold uppercase tracking-[.2em] text-[#e72d64]">Inscrição confirmada</p><h3 className="mt-2 text-3xl font-black">Até breve, {data.nome.split(" ")[0]}.</h3><p className="mx-auto mt-3 max-w-md text-sm text-black/60">Recebemos seus dados e enviamos a confirmação para <strong>{data.email}</strong>.</p></div>
   
   return <form onSubmit={step === 1 ? next : submit} className="grid gap-5 rounded-2xl bg-white p-6 text-[#202020] shadow-xl sm:p-9">
@@ -27,7 +49,6 @@ export function RegistrationForm() {
         <label className="grid gap-2 text-sm font-semibold">Nome completo *<input required value={data.nome} onChange={update("nome")} className={inputClass} placeholder="Seu nome completo" /></label>
         <label className="grid gap-2 text-sm font-semibold">E-mail *<input required type="email" value={data.email} onChange={update("email")} className={inputClass} placeholder="seu@email.com" /></label>
         
-        {/* TELEFONE CORRIGIDO: pattern flexível e title explicativo */}
         <label className="grid gap-2 text-sm font-semibold sm:col-span-2">
           Telefone celular *
           <input 
@@ -47,7 +68,6 @@ export function RegistrationForm() {
       </div> 
     : 
       <div className="grid gap-4 sm:grid-cols-2">
-        {/* CNPJ CORRIGIDO: pattern flexível */}
         <label className="grid gap-2 text-sm font-semibold">
           CNPJ *
           <input 
@@ -65,7 +85,43 @@ export function RegistrationForm() {
         <label className="grid gap-2 text-sm font-semibold">Razão social *<input required value={data.razaoSocial} onChange={update("razaoSocial")} className={inputClass} placeholder="Nome da empresa" /></label>
         <label className="grid gap-2 text-sm font-semibold sm:col-span-2">Setor / Departamento *<input required value={data.setor} onChange={update("setor")} className={inputClass} placeholder="Ex.: Qualidade, Produção" /></label>
         
-        {/* TELEFONE EMPRESA CORRIGIDO */}
+        {/* NOVO CAMPO: TIPO DE CLIENTE */}
+        <fieldset className="grid gap-3 sm:col-span-2">
+          <legend className="text-sm font-semibold">Você é: *</legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-black/15 p-3 text-sm transition has-[:checked]:border-[#e72d64] has-[:checked]:bg-[#fff1f5]">
+              <input 
+                required 
+                type="radio" 
+                name="tipoCliente" 
+                value="Cliente de contrato" 
+                checked={data.tipoCliente === "Cliente de contrato"}
+                onChange={update("tipoCliente")}
+                className="accent-[#e72d64]" 
+              />
+              <div>
+                <strong className="block">Cliente de contrato</strong>
+                <span className="text-xs text-black/50">Já possui contrato ativo com a TECNOISO</span>
+              </div>
+            </label>
+            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-black/15 p-3 text-sm transition has-[:checked]:border-[#e72d64] has-[:checked]:bg-[#fff1f5]">
+              <input 
+                required 
+                type="radio" 
+                name="tipoCliente" 
+                value="Cliente avulso" 
+                checked={data.tipoCliente === "Cliente avulso"}
+                onChange={update("tipoCliente")}
+                className="accent-[#e72d64]" 
+              />
+              <div>
+                <strong className="block">Cliente avulso</strong>
+                <span className="text-xs text-black/50">Ainda não é cliente (necessário pagar)</span>
+              </div>
+            </label>
+          </div>
+        </fieldset>
+
         <label className="grid gap-2 text-sm font-semibold">
           Telefone da empresa 
           <input 
