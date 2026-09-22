@@ -9,7 +9,6 @@ const logoUrl = "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-E
 const learningItems = ["Estrutura e elementos de um certificado de calibração", "Interpretação de resultados e incertezas de medição", "Rastreabilidade metrológica e cadeia de calibração", "Critérios de aceitação e conformidade", "Boas práticas e ISO/IEC 17025", "Estudos de caso e exercícios práticos"]
 const fadeUp = { hidden: { opacity: 0, y: 25 }, visible: { opacity: 1, y: 0 } }
 
-// Lista de palavras para a animação da seção "Sobre"
 const palavrasAnimadas = [
   "seguras",
   "assertivas",
@@ -21,7 +20,7 @@ const palavrasAnimadas = [
   "seguras e precisas"
 ]
 
-// Lista de frases criativas para a seção Hero (Início)
+// FRASES CURTAS - Todas cabem em 3 linhas sem quebrar
 const frasesHero = [
   {
     linha1: <><span className="text-[#ff2350]">1</span> treinamento</>,
@@ -30,23 +29,23 @@ const frasesHero = [
   },
   {
     linha1: <>Domine a <span className="text-[#ff2350]">metrologia</span></>,
-    linha2: <>Decisões <span className="text-[#ff2350]">seguras</span> e</>,
-    linha3: <>tecnicamente <span className="text-[#ff2350]">embasadas</span></>
+    linha2: <>Decisões <span className="text-[#ff2350]">seguras</span></>,
+    linha3: <>e <span className="text-[#ff2350]">embasadas</span></>
   },
   {
-    linha1: <>Interpretação <span className="text-[#ff2350]">precisa</span></>,
-    linha2: <>Resultados <span className="text-[#ff2350]">confiáveis</span> para</>,
-    linha3: <>sua <span className="text-[#ff2350]">rotina técnica</span></>
+    linha1: <>Análise <span className="text-[#ff2350]">precisa</span></>,
+    linha2: <>Resultados <span className="text-[#ff2350]">confiáveis</span></>,
+    linha3: <>na sua <span className="text-[#ff2350]">rotina</span></>
   },
   {
     linha1: <>Do certificado à <span className="text-[#ff2350]">decisão</span></>,
-    linha2: <>com <span className="text-[#ff2350]">segurança</span> e</>,
-    linha3: <>visão <span className="text-[#ff2350]">estratégica</span></>
+    linha2: <>com <span className="text-[#ff2350]">segurança</span></>,
+    linha3: <>e <span className="text-[#ff2350]">estratégia</span></>
   },
   {
     linha1: <>Análise <span className="text-[#ff2350]">assertiva</span></>,
-    linha2: <>Conformidade <span className="text-[#ff2350]">garantida</span> e</>,
-    linha3: <>processos <span className="text-[#ff2350]">eficientes</span></>
+    linha2: <>Conformidade <span className="text-[#ff2350]">garantida</span></>,
+    linha3: <>e <span className="text-[#ff2350]">eficiente</span></>
   }
 ]
 
@@ -83,16 +82,13 @@ export function TrainingLandingPage() {
   return <div className="min-h-screen overflow-hidden bg-white text-[#202020]">
     <header className="absolute inset-x-0 top-0 z-50 bg-transparent text-white"><div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8"><a href="#inicio"><img src={logoUrl} alt="TECNOISO" className="h-9 w-auto brightness-0 invert" /></a><nav className="hidden items-center gap-8 text-xs font-semibold md:flex"><a href="#sobre" className="hover:text-[#ff2746]">O treinamento</a><a href="#conteudo" className="hover:text-[#ff2746]">Conteúdo</a><a href="#inscricao" className="hover:text-[#ff2746]">Inscreva-se</a><a href="#inscricao" className="rounded-full border border-white/70 px-5 py-2.5 text-[10px] font-bold uppercase tracking-wider hover:bg-white hover:text-[#27192f]">Quero minha vaga</a></nav><button className="rounded-lg p-2 text-white md:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menu">{menuOpen ? <X /> : <Menu />}</button></div>{menuOpen && <nav className="bg-[#26172d]/95 px-5 py-5 md:hidden"><div className="flex flex-col gap-4 text-sm"><a href="#sobre">O treinamento</a><a href="#conteudo">Conteúdo</a><a href="#inscricao">Inscreva-se</a></div></nav>}</header>
     <main>
-      {/* BANNER AUMENTADO: min-h-[800px] para dar mais respiro */}
       <section id="inicio" className="relative min-h-[800px] overflow-hidden bg-[#28172f] text-white">
         <img src="/tecnoiso-speaker-hero.png" alt="Palestrante em evento TECNOISO" className="absolute inset-0 h-full w-full object-cover object-center" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#170819]/90 via-[#210b22]/55 to-transparent" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-28 sm:h-36"><svg viewBox="0 0 1440 180" preserveAspectRatio="none" className="h-full w-full" aria-hidden="true"><path d="M0 34 C220 112 420 140 690 102 C990 60 1150 10 1440 54 L1440 180 L0 180 Z" fill="white" /></svg></div>
         
-        {/* Aumentei o pt-40 para pt-48 para o conteúdo descer um pouco e o pb-32 para pb-40 */}
         <div className="relative z-30 mx-auto grid max-w-7xl items-center gap-12 px-5 pb-40 pt-48 lg:grid-cols-[1.15fr_.85fr] lg:px-8">
           <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: .7 }}>
-            
             
             <h1 className="max-w-3xl text-5xl font-black leading-[.98] sm:text-7xl">
               <div className="relative grid h-[3.1em] sm:h-[2.94em] overflow-hidden items-center">
@@ -114,7 +110,9 @@ export function TrainingLandingPage() {
             </h1>
 
             <p className="mt-6 max-w-xl text-lg text-white/80">Análise e Interpretação de Certificados de Calibração para decisões técnicas mais seguras.</p>
+            
             <p className="mt-5 font-mono text-sm text-white/90">[ 30/09/2026 · 13h30 às 17h30 · EaD ao vivo ]</p>
+
             <div className="mt-8 flex flex-wrap gap-3"><a href="#inscricao" className="rounded-full bg-[#e72d64] px-7 py-3.5 text-xs font-bold uppercase tracking-wide transition hover:-translate-y-1 hover:bg-[#ff4770]">Quero me inscrever</a><a href="#conteudo" className="rounded-full border border-[#e72d64] px-7 py-3.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#e72d64]">Ver conteúdo</a></div>
           </motion.div>
           
@@ -125,7 +123,6 @@ export function TrainingLandingPage() {
         </div>
       </section>
       
-      {/* SEÇÃO SOBRE COM A ANIMAÇÃO */}
       <section id="sobre" className="relative mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
         <div className="grid items-center gap-14 lg:grid-cols-[.95fr_1.05fr]">
           <div>
