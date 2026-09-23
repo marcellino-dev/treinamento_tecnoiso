@@ -12,7 +12,7 @@ type FormData = {
   telefoneEmpresa: string; 
   cidade: string; 
   estado: string;
-  tipoCliente: string; // NOVO CAMPO
+  tipoCliente: string;
 }
 const initialData: FormData = { 
   nome: "", 
@@ -24,7 +24,7 @@ const initialData: FormData = {
   telefoneEmpresa: "", 
   cidade: "", 
   estado: "",
-  tipoCliente: "" // NOVO CAMPO
+  tipoCliente: ""
 }
 const states = ["AC - Acre", "AL - Alagoas", "AP - Amapá", "AM - Amazonas", "BA - Bahia", "CE - Ceará", "DF - Distrito Federal", "ES - Espírito Santo", "GO - Goiás", "MA - Maranhão", "MT - Mato Grosso", "MS - Mato Grosso do Sul", "MG - Minas Gerais", "PA - Pará", "PB - Paraíba", "PR - Paraná", "PE - Pernambuco", "PI - Piauí", "RJ - Rio de Janeiro", "RN - Rio Grande do Norte", "RS - Rio Grande do Sul", "RO - Rondônia", "RR - Roraima", "SC - Santa Catarina", "SP - São Paulo", "SE - Sergipe", "TO - Tocantins"]
 const inputClass = "w-full rounded-lg border border-black/15 px-4 py-3 outline-none transition focus:border-[#e72d64]"
@@ -85,11 +85,12 @@ export function RegistrationForm() {
         <label className="grid gap-2 text-sm font-semibold">Razão social *<input required value={data.razaoSocial} onChange={update("razaoSocial")} className={inputClass} placeholder="Nome da empresa" /></label>
         <label className="grid gap-2 text-sm font-semibold sm:col-span-2">Setor / Departamento *<input required value={data.setor} onChange={update("setor")} className={inputClass} placeholder="Ex.: Qualidade, Produção" /></label>
         
-        {/* NOVO CAMPO: TIPO DE CLIENTE */}
+        {/* CAMPO: TIPO DE CLIENTE */}
         <fieldset className="grid gap-3 sm:col-span-2">
           <legend className="text-sm font-semibold">Você é: *</legend>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-black/15 p-3 text-sm transition has-[:checked]:border-[#e72d64] has-[:checked]:bg-[#fff1f5]">
+            {/* Opção 1: Cliente de contrato */}
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-black/15 p-4 text-sm transition has-[:checked]:border-[#e72d64] has-[:checked]:bg-[#fff1f5]">
               <input 
                 required 
                 type="radio" 
@@ -97,14 +98,16 @@ export function RegistrationForm() {
                 value="Cliente de contrato" 
                 checked={data.tipoCliente === "Cliente de contrato"}
                 onChange={update("tipoCliente")}
-                className="accent-[#e72d64]" 
+                className="mt-0.5 accent-[#e72d64]" 
               />
-              <div>
+              <div className="flex-1">
                 <strong className="block">Cliente de contrato</strong>
-                <span className="text-xs text-black/50">Já possui contrato ativo com a TECNOISO</span>
+                <span className="mt-1 block text-xs text-black/50">Possui contrato ativo com a TECNOISO</span>
               </div>
             </label>
-            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-black/15 p-3 text-sm transition has-[:checked]:border-[#e72d64] has-[:checked]:bg-[#fff1f5]">
+            
+            {/* Opção 2: Cliente avulso - COM BADGE "SOB CONSULTA" */}
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-black/15 p-4 text-sm transition has-[:checked]:border-[#e72d64] has-[:checked]:bg-[#fff1f5]">
               <input 
                 required 
                 type="radio" 
@@ -112,14 +115,32 @@ export function RegistrationForm() {
                 value="Cliente avulso" 
                 checked={data.tipoCliente === "Cliente avulso"}
                 onChange={update("tipoCliente")}
-                className="accent-[#e72d64]" 
+                className="mt-0.5 accent-[#e72d64]" 
               />
-              <div>
-                <strong className="block">Cliente avulso</strong>
-                <span className="text-xs text-black/50">Ainda não é cliente (necessário pagar)</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <strong className="block">Cliente avulso</strong>
+                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                    Sob consulta
+                  </span>
+                </div>
+                <span className="mt-1 block text-xs text-black/50">É cliente, mas não possui contrato ativo</span>
               </div>
             </label>
           </div>
+          
+          {/* ALERTA: aparece apenas quando "Cliente avulso" está selecionado */}
+          {data.tipoCliente === "Cliente avulso" && (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm animate-in fade-in slide-in-from-top-2 duration-300">
+              <span className="mt-0.5 text-lg text-amber-600">⚠️</span>
+              <div className="flex-1 text-amber-900">
+                <strong className="block font-bold">Fique atento</strong>
+                <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                  Como você não possui contrato ativo com a TECNOISO, o valor do treinamento precisa ser validado com o setor comercial.
+                </p>
+              </div>
+            </div>
+          )}
         </fieldset>
 
         <label className="grid gap-2 text-sm font-semibold">
