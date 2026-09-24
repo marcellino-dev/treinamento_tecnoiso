@@ -1,10 +1,47 @@
 import { NextResponse } from "next/server"
 import nodemailer from "nodemailer"
+import path from "path"
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const digitsOnly = (value: string) => value.replace(/\D/g, "")
 const escapeHtml = (value: string) => value.replace(/[&<>\"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" })[character] || character)
-const shell = (content: string) => `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#686868;font-family:Arial,sans-serif;color:#252525"><div style="max-width:620px;margin:24px auto;background:#fff"><div style="padding:28px 36px;border-bottom:1px solid #eee"><strong style="font-size:22px;letter-spacing:1px;color:#28172f">TECNOISO</strong><span style="float:right;color:#e72d64;font-size:12px;font-weight:bold">TREINAMENTO 2026</span></div>${content}<div style="background:#28172f;color:#fff;padding:24px 36px;text-align:center;font-size:12px"><strong>TECNOISO Tecnologia e Soluções Industriais LTDA.</strong><br><span style="color:#d7cadb">Análise e Interpretação de Certificados de Calibração</span></div></div></body></html>`
+
+// Modo de teste: enquanto for true, todos os e-mails vão apenas para EMAIL_TESTE
+const MODO_TESTE = false
+const EMAIL_TESTE = "mclsouza1613ad@gmail.com"
+const EMAIL_TESTE_CLIENTE = "marcelinosouza.dev@gmail.com"
+const DESTINATARIOS_INTERNOS = "contato@tecnoiso.com, vendas@tecnoiso.com, vendas3@tecnoiso.com"
+const COPIA_OCULTA = "mclsouza1613ad@gmail.com"
+
+const COR_DESTAQUE = "#e72d64"
+const COR_ESCURA = "#000000"
+const EMAIL_CONTATO = "contato@tecnoiso.com"
+
+// Imagens do template enviadas como anexos inline (CID). Os arquivos ficam em public/email/
+const arquivosImagens = ["hero.png", "brush-top.png", "brush-bottom.png"]
+const anexosImagens = arquivosImagens.map((arquivo) => ({
+  filename: arquivo,
+  path: path.join(process.cwd(), "public", "email", arquivo),
+  cid: arquivo.replace(/\.[a-z]+$/, ""),
+  contentDisposition: "inline" as const
+}))
+
+const imagem = (cid: string, largura: number) => `<img src="cid:${cid}" width="${largura}" alt="" style="display:block;width:100%;max-width:${largura}px;height:auto;border:0">`
+const faixaTopo = `<tr><td style="line-height:0;font-size:0;background:#ffffff">${imagem("brush-top", 600)}</td></tr>`
+const faixaBase = `<tr><td style="line-height:0;font-size:0;background:#ffffff">${imagem("brush-bottom", 600)}</td></tr>`
+const botao = (texto: string, href: string) => `<a href="${href}" style="display:inline-block;background:${COR_DESTAQUE};color:#ffffff;padding:13px 24px;font-size:16px;text-decoration:none">${texto}</a>`
+const blocoPreto = (conteudo: string) => `<tr><td bgcolor="${COR_ESCURA}" style="background:${COR_ESCURA};padding:10px 30px 34px;color:#ffffff">${conteudo}</td></tr>`
+const blocoBranco = (conteudo: string) => `<tr><td bgcolor="#ffffff" style="background:#ffffff;padding:10px 30px 34px;color:#000000">${conteudo}</td></tr>`
+const titulo = (texto: string, cor: string) => `<div style="font-size:34px;font-weight:bold;text-align:center;letter-spacing:1px;color:${cor};margin:0 0 24px">${texto}</div>`
+const subtitulo = (texto: string) => `<div style="font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:bold;margin:0 0 12px">${texto}</div>`
+const destaque = (texto: string) => `<div style="font-size:30px;font-weight:bold;color:${COR_DESTAQUE};margin:14px 0 18px">${texto}</div>`
+const duasColunas = (esquerda: string, direita: string) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td width="50%" valign="top" style="padding-right:12px">${esquerda}</td><td width="50%" valign="top" style="padding-left:12px">${direita}</td></tr></table>`
+const campos = (itens: [string, string][], escuro: boolean) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${escuro ? "#333333" : "#e5e5e5"}">${itens.map(([rotulo, valor]) => `<tr><td width="38%" valign="top" style="padding:13px 12px 13px 0;border-bottom:1px solid ${escuro ? "#333333" : "#e5e5e5"};font-size:12px;font-weight:bold;letter-spacing:1px;color:${escuro ? "#999999" : "#777777"}">${rotulo}</td><td valign="top" style="padding:13px 0;border-bottom:1px solid ${escuro ? "#333333" : "#e5e5e5"};font-size:15px;font-weight:bold;line-height:1.4;color:${escuro ? "#ffffff" : "#000000"};word-break:break-word">${valor}</td></tr>`).join("")}</table>`
+const manchete = (linha1Esquerda: string, linha1Direita: string, linha2Esquerda: string, linha2Direita: string) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 18px"><tr><td align="right" style="padding-right:14px;font-size:42px;font-weight:bold;color:#000000;line-height:1.1">${linha1Esquerda}</td><td align="left" style="font-size:34px;color:${COR_DESTAQUE};line-height:1.1">${linha1Direita}</td></tr><tr><td align="right" style="padding-right:14px;font-size:46px;font-weight:bold;color:${COR_DESTAQUE};line-height:1.2">${linha2Esquerda}</td><td align="left" style="font-size:28px;color:#000000;line-height:1.2">${linha2Direita}</td></tr></table>`
+
+const shell = (content: string) => `<!doctype html><html lang="pt-BR"><body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#000000"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff"><tr><td align="center"><table role="presentation" width="680" cellpadding="0" cellspacing="0" border="0" bgcolor="${COR_ESCURA}" style="width:100%;max-width:680px;background:${COR_ESCURA}"><tr><td style="padding:0 40px"><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width:100%;max-width:600px;background:#ffffff"><tr><td style="padding:22px 30px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-size:22px;font-weight:bold;letter-spacing:2px;color:#000000">TECNOISO</td><td align="right" style="font-size:12px;font-weight:bold;color:#000000">TREINAMENTO 2026</td></tr></table></td></tr><tr><td style="line-height:0;font-size:0">${imagem("hero", 600)}</td></tr>${content}<tr><td bgcolor="${COR_ESCURA}" style="background:${COR_ESCURA};padding:26px 30px;text-align:center;font-size:12px;color:#ffffff"><strong>TECNOISO Tecnologia e Soluções Industriais LTDA.</strong><br><span style="color:#cccccc">Análise e Interpretação de Certificados de Calibração</span><br><a href="mailto:${EMAIL_CONTATO}" style="color:${COR_DESTAQUE};text-decoration:none;font-weight:bold">${EMAIL_CONTATO}</a></td></tr></table></td></tr></table></td></tr></table></body></html>`
+
+const listaItens = (itens: string[]) => itens.map((item) => `&bull; ${item}`).join("<br>")
 
 export async function POST(request: Request) {
   try {
@@ -34,62 +71,105 @@ export async function POST(request: Request) {
     
     const name = escapeHtml(data.nome)
     const email = escapeHtml(data.email)
+    const primeiroNome = escapeHtml(data.nome.split(" ")[0])
+    const tipoCliente = escapeHtml(data.tipoCliente)
+    const ehContrato = data.tipoCliente === "Cliente de contrato"
+    const linkAgenda = "https://calendar.google.com/calendar/render?action=TEMPLATE&amp;text=" + encodeURIComponent("Treinamento TECNOISO - Análise e Interpretação de Certificados de Calibração") + "&amp;dates=20260930T163000Z/20260930T203000Z&amp;details=" + encodeURIComponent("EaD ao vivo")
+    const linkCorrecao = `mailto:${EMAIL_CONTATO}?subject=${encodeURIComponent("Correção de dados - Treinamento TECNOISO")}`
+    const linkFalarEquipe = `mailto:${EMAIL_CONTATO}?subject=${encodeURIComponent("Treinamento TECNOISO")}`
+    const linkResponder = `mailto:${email}?subject=${encodeURIComponent("Treinamento TECNOISO")}`
+    const linkLigar = `tel:+55${digitsOnly(data.telefone)}`
     
     // E-mail de notificação (para a TECNOISO + setor comercial)
     const details = `
-      <h1 style="font-size:28px;margin:0 0 12px;color:#28172f">Nova inscrição recebida</h1>
-      <p style="color:#666;line-height:1.6">Uma nova pessoa demonstrou interesse no treinamento TECNOISO.</p>
-      <div style="background:#fff1f5;border-left:4px solid #e72d64;padding:18px;margin:24px 0;line-height:1.8">
-        <b>Dados pessoais</b><br>
-        Nome: ${name}<br>
-        E-mail: ${email}<br>
-        Telefone: ${escapeHtml(data.telefone)}<br><br>
-        <b>Dados da empresa</b><br>
-        CNPJ: ${escapeHtml(data.cnpj)}<br>
-        Razão social: ${escapeHtml(data.razaoSocial)}<br>
-        Setor: ${escapeHtml(data.setor)}<br>
-        Telefone da empresa: ${escapeHtml(data.telefoneEmpresa || "Não informado")}<br>
-        Cidade: ${escapeHtml(data.cidade || "Não informado")}<br>
-        Estado: ${escapeHtml(data.estado || "Não informado")}<br><br>
-        <b>Tipo de cliente</b><br>
-        <span style="display:inline-block;padding:6px 12px;border-radius:6px;font-weight:bold;background:${data.tipoCliente === "Cliente de contrato" ? "#d1fae5" : "#fff1f5"};color:${data.tipoCliente === "Cliente de contrato" ? "#065f46" : "#e72d64"}">${escapeHtml(data.tipoCliente)}</span>
-      </div>
-      <p style="color:#666">Responda este e-mail para falar diretamente com o participante.</p>
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:18px 30px 10px;text-align:center">
+        ${manchete("NOVA", "INSCRIÇÃO", "30/09", "13H30 &middot; EaD")}
+        <p style="font-size:16px;line-height:1.5;color:#000000;margin:0 0 22px">Uma nova pessoa demonstrou interesse no <strong>treinamento TECNOISO</strong>. Confira os dados abaixo e responda este e-mail para falar diretamente com o participante.</p>
+        ${botao("Responder participante", linkResponder)}
+        <div style="height:26px;line-height:26px;font-size:0">&nbsp;</div>
+      </td></tr>
+      ${faixaTopo}
+      ${blocoPreto(`
+        ${titulo("DADOS PESSOAIS", "#ffffff")}
+        ${campos([["NOME", name], ["E-MAIL", email], ["TELEFONE", escapeHtml(data.telefone)]], true)}
+        <div style="height:26px;line-height:26px;font-size:0">&nbsp;</div>
+        <div style="text-align:center">${botao("Ligar para o participante", linkLigar)}</div>
+      `)}
+      ${faixaBase}
+      ${blocoBranco(`
+        ${titulo("DADOS DA EMPRESA", "#000000")}
+        ${campos([["RAZÃO SOCIAL", escapeHtml(data.razaoSocial)], ["CNPJ", escapeHtml(data.cnpj)], ["SETOR", escapeHtml(data.setor)], ["TELEFONE", escapeHtml(data.telefoneEmpresa || "Não informado")], ["CIDADE", escapeHtml(data.cidade || "Não informado")], ["ESTADO", escapeHtml(data.estado || "Não informado")]], false)}
+      `)}
+      ${faixaTopo}
+      ${blocoPreto(`
+        ${titulo("TIPO DE CLIENTE", "#ffffff")}
+        <div style="text-align:center;margin:0 0 26px"><span style="display:inline-block;padding:10px 20px;border-radius:6px;font-size:18px;font-weight:bold;background:${ehContrato ? "#d1fae5" : "#fff1f5"};color:${ehContrato ? "#065f46" : COR_DESTAQUE}">${tipoCliente}</span></div>
+        <div style="text-align:center">${botao("Responder participante", linkResponder)}</div>
+      `)}
+      ${faixaBase}
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:6px 30px 30px;text-align:center;font-size:14px;color:#555555">Responda este e-mail para falar diretamente com o participante.</td></tr>
     `
     
     // E-mail de confirmação (para o participante)
     const confirmation = `
-      <div style="padding:42px 36px 34px">
-        <div style="display:inline-block;background:#e72d64;color:#fff;border-radius:50%;width:48px;height:48px;text-align:center;line-height:48px;font-size:26px">✓</div>
-        <p style="color:#e72d64;font-weight:bold;letter-spacing:2px;font-size:12px;margin:22px 0 8px">INSCRIÇÃO RECEBIDA</p>
-        <h1 style="font-size:32px;line-height:1.1;margin:0 0 18px;color:#28172f">Até breve, ${escapeHtml(data.nome.split(" ")[0])}.</h1>
-        <p style="font-size:16px;line-height:1.6;color:#555">Recebemos seus dados para o treinamento e nossa equipe entrará em contato em breve.</p>
-        <div style="background:#28172f;color:#fff;padding:22px;margin:28px 0;line-height:1.7">
-          <strong style="font-size:18px">Análise e Interpretação de Certificados de Calibração</strong><br>
-          <span style="color:#ff4770">30/09/2026 · 13h30 às 17h30 · EaD ao vivo</span>
-        </div>
-        <p style="color:#777;font-size:13px">Guarde este e-mail. Se não encontrá-lo na caixa de entrada, verifique spam e promoções.</p>
-      </div>
+      <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:18px 30px 10px;text-align:center">
+        ${manchete("INSCRIÇÃO", "RECEBIDA", "30/09", "EaD AO VIVO")}
+        <p style="font-size:16px;line-height:1.5;color:#000000;margin:0 0 22px">Olá, ${primeiroNome}. Recebemos seus dados para o treinamento <strong>Análise e Interpretação de Certificados de Calibração</strong> e nossa equipe entrará em contato em breve.</p>
+        ${botao("Falar com a equipe", linkFalarEquipe)}
+        <div style="height:26px;line-height:26px;font-size:0">&nbsp;</div>
+      </td></tr>
+      ${faixaTopo}
+      ${blocoPreto(`
+        ${destaque("AULA AO VIVO 30/09")}
+        <div style="font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:bold;line-height:1.3;margin:0 0 12px;color:#ffffff">Análise e Interpretação de Certificados de Calibração</div>
+        <div style="font-size:16px;line-height:1.8;color:#ffffff;margin:0 0 22px">${listaItens(["30/09/2026", "13h30 às 17h30", "EaD ao vivo"])}</div>
+        <span style="display:inline-block;background:${COR_DESTAQUE};color:#ffffff;padding:13px 24px;font-size:16px;font-weight:bold">30/09/2026 &middot; 13H30</span>
+      `)}
+      ${faixaBase}
+      ${blocoBranco(`
+        ${titulo("SEUS DADOS", "#000000")}
+        ${campos([["NOME", name], ["E-MAIL", email], ["EMPRESA", escapeHtml(data.razaoSocial)], ["CNPJ", escapeHtml(data.cnpj)]], false)}
+        <div style="height:26px;line-height:26px;font-size:0">&nbsp;</div>
+        <div style="text-align:center">${botao("Corrigir meus dados", linkCorrecao)}</div>
+      `)}
+      ${faixaTopo}
+      ${blocoPreto(`
+        ${titulo("NÃO PERCA", "#ffffff")}
+        ${duasColunas(
+          `<div style="font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:bold;margin:0 0 12px;color:#ffffff">Data e horário</div><div style="font-size:14px;line-height:1.6;color:#ffffff">Treinamento com aula única, das 13h30 às 17h30.</div>${destaque("30/09/2026")}${botao("Adicionar à agenda", linkAgenda)}`,
+          `<div style="font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:bold;margin:0 0 12px;color:#ffffff">Formato</div><div style="font-size:14px;line-height:1.6;color:#ffffff">Transmissão ao vivo, na modalidade EaD.</div>${destaque("EaD AO VIVO")}`
+        )}
+      `)}
+      ${faixaBase}
+      ${blocoBranco(`
+        ${titulo("PRÓXIMOS PASSOS", "#000000")}
+        ${duasColunas(
+          `<div style="font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:bold;margin:0 0 12px">Aguarde nosso contato</div><div style="font-size:14px;line-height:1.6;color:#000000">Nossa equipe entrará em contato em breve com você.</div>${destaque("01")}`,
+          `<div style="font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:bold;margin:0 0 12px">Guarde este e-mail</div><div style="font-size:14px;line-height:1.6;color:#000000">Se não encontrá-lo na caixa de entrada, verifique spam e promoções.</div>${destaque("02")}`
+        )}
+      `)}
     `
     
     // Envio do e-mail de notificação (contato + vendas + vendas3)
     await transporter.sendMail({ 
       from: process.env.SMTP_USER, 
-      to: "contato@tecnoiso.com, vendas@tecnoiso.com, vendas3@tecnoiso.com", 
-      bcc: "mclsouza1613ad@gmail.com", 
+      to: MODO_TESTE ? EMAIL_TESTE : DESTINATARIOS_INTERNOS, 
+      bcc: MODO_TESTE ? undefined : COPIA_OCULTA, 
       replyTo: data.email, 
-      subject: `Nova inscrição (${data.tipoCliente}) | Treinamento TECNOISO`, 
+      subject: `${MODO_TESTE ? "[TESTE] " : ""}Nova inscrição (${data.tipoCliente}) | Treinamento TECNOISO`, 
       html: shell(details), 
-      text: `Nova inscrição de ${data.nome} (${data.email}) - ${data.tipoCliente}.` 
+      text: `Nova inscrição de ${data.nome} (${data.email}) - ${data.tipoCliente}.`,
+      attachments: anexosImagens
     })
     
     // Envio do e-mail de confirmação para o participante
     await transporter.sendMail({ 
       from: process.env.SMTP_USER, 
-      to: data.email, 
-      subject: "Sua inscrição foi recebida | TECNOISO", 
+      to: MODO_TESTE ? EMAIL_TESTE_CLIENTE : data.email, 
+      subject: `${MODO_TESTE ? "[TESTE] " : ""}Sua inscrição foi recebida | TECNOISO`, 
       html: shell(confirmation), 
-      text: `Olá, ${data.nome}. Recebemos seus dados para o treinamento TECNOISO. Nossa equipe entrará em contato em breve.` 
+      text: `Olá, ${data.nome}. Recebemos seus dados para o treinamento TECNOISO. Nossa equipe entrará em contato em breve.`,
+      attachments: anexosImagens
     })
     
     return NextResponse.json({ success: true })
