@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     const name = escapeHtml(data.nome)
     const email = escapeHtml(data.email)
     
-    // E-mail de notificação (para a TECNOISO)
+    // E-mail de notificação (para a TECNOISO + setor comercial)
     const details = `
       <h1 style="font-size:28px;margin:0 0 12px;color:#28172f">Nova inscrição recebida</h1>
       <p style="color:#666;line-height:1.6">Uma nova pessoa demonstrou interesse no treinamento TECNOISO.</p>
@@ -72,10 +72,10 @@ export async function POST(request: Request) {
       </div>
     `
     
-    // Envio do e-mail para a TECNOISO
+    // Envio do e-mail de notificação (contato + vendas + vendas3)
     await transporter.sendMail({ 
       from: process.env.SMTP_USER, 
-      to: "contato@tecnoiso.com", 
+      to: "contato@tecnoiso.com, vendas@tecnoiso.com, vendas3@tecnoiso.com", 
       bcc: "mclsouza1613ad@gmail.com", 
       replyTo: data.email, 
       subject: `Nova inscrição (${data.tipoCliente}) | Treinamento TECNOISO`, 
