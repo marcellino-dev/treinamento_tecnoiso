@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import nodemailer from "nodemailer"
+import { google } from "googleapis"
 import path from "path"
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -17,7 +18,6 @@ const COR_DESTAQUE = "#e72d64"
 const COR_ESCURA = "#000000"
 const EMAIL_CONTATO = "contato@tecnoiso.com"
 
-// Imagens do template enviadas como anexos inline (CID). Os arquivos ficam em public/email/
 const arquivosImagens = ["hero.png", "brush-top.png", "brush-bottom.png"]
 const anexosImagens = arquivosImagens.map((arquivo) => ({
   filename: arquivo,
@@ -43,22 +43,68 @@ const shell = (content: string) => `<!doctype html><html lang="pt-BR"><body styl
 
 const listaItens = (itens: string[]) => itens.map((item) => `&bull; ${item}`).join("<br>")
 
+// ============================================
+// FUNÇÃO: Salvar na planilha do Google Sheets (5 colunas)
+// ============================================
+async function saveToSheet(data: any) {
+  console.log("[SHEETS] ================================")
+  console.log("[SHEETS] Iniciando saveToSheet...")
+  console.log("[SHEETS] ID da planilha:", process.env.GOOGLE_SHEETS_ID)
+  console.log("[SHEETS] Aba:", process.env.GOOGLE_SHEETS_TAB)
+  console.log("[SHEETS] Service Account:", process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL)
+  console.log("[SHEETS] Private Key existe?", !!process.env.GOOGLE_PRIVATE_KEY)
+  console.log("[SHEETS] Private Key tamanho:", process.env.GOOGLE_PRIVATE_KEY?.length || 0)
+  console.log("[SHEETS] ================================")
+  
+  try {
+    const auth = new google.auth.GoogleAuth({
+      credentials: {
+        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+      },
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    })
+
+    const sheets = google.sheets({ version: "v4", auth })
+
+    const response = await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.GOOGLE_SHEETS_ID,
+      range: `${process.env.GOOGLE_SHEETS_TAB}!A:E`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[
+          data.email,
+          data.telefone,
+          data.nome,
+          data.razaoSocial,
+          data.cnpj,
+        ]],
+      },
+    })
+
+    console.log("[SHEETS] ✅ SUCESSO! Linha adicionada:", response.data.updates?.updatedRange)
+  } catch (error: any) {
+    console.error("[SHEETS] ❌ ERRO:", error.message)
+    throw error
+  }
+}
+
+// ============================================
+// ROTA POST
+// ============================================
 export async function POST(request: Request) {
   try {
     const data = await request.json()
     
-    // Validação dos campos obrigatórios
     const required = ["nome", "email", "telefone", "cnpj", "razaoSocial", "setor", "tipoCliente"]
     if (required.some((field) => typeof data[field] !== "string" || !data[field].trim())) {
       return NextResponse.json({ error: "Dados obrigatórios ausentes" }, { status: 400 })
     }
     
-    // Validação de formatos
     if (!emailPattern.test(data.email) || digitsOnly(data.telefone).length < 10 || digitsOnly(data.cnpj).length !== 14 || !/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(data.cnpj)) {
       return NextResponse.json({ error: "Formato de dado inválido" }, { status: 400 })
     }
     
-    // Configuração do transporter SMTP
     const transporter = nodemailer.createTransport({ 
       host: process.env.SMTP_HOST, 
       port: Number(process.env.SMTP_PORT || 465), 
@@ -80,7 +126,6 @@ export async function POST(request: Request) {
     const linkResponder = `mailto:${email}?subject=${encodeURIComponent("Treinamento TECNOISO")}`
     const linkLigar = `tel:+55${digitsOnly(data.telefone)}`
     
-    // E-mail de notificação (para a TECNOISO + setor comercial)
     const details = `
       <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:18px 30px 10px;text-align:center">
         ${manchete("NOVA", "INSCRIÇÃO", "30/09", "13H30 &middot; EaD")}
@@ -110,7 +155,6 @@ export async function POST(request: Request) {
       <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:6px 30px 30px;text-align:center;font-size:14px;color:#555555">Responda este e-mail para falar diretamente com o participante.</td></tr>
     `
     
-    // E-mail de confirmação (para o participante)
     const confirmation = `
       <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:18px 30px 10px;text-align:center">
         ${manchete("INSCRIÇÃO", "RECEBIDA", "30/09", "EaD AO VIVO")}
@@ -150,27 +194,44 @@ export async function POST(request: Request) {
       `)}
     `
     
-    // Envio do e-mail de notificação (contato + vendas + vendas3)
-    await transporter.sendMail({ 
-      from: process.env.SMTP_USER, 
-      to: MODO_TESTE ? EMAIL_TESTE : DESTINATARIOS_INTERNOS, 
-      bcc: MODO_TESTE ? undefined : COPIA_OCULTA, 
-      replyTo: data.email, 
-      subject: `${MODO_TESTE ? "[TESTE] " : ""}Nova inscrição (${data.tipoCliente}) | Treinamento TECNOISO`, 
-      html: shell(details), 
-      text: `Nova inscrição de ${data.nome} (${data.email}) - ${data.tipoCliente}.`,
-      attachments: anexosImagens
-    })
+    // 1. Salva na planilha
+    try {
+      await saveToSheet(data)
+    } catch (err) {
+      console.error("[ROUTE] Erro ao salvar na planilha (e-mail continuará):", err)
+    }
     
-    // Envio do e-mail de confirmação para o participante
-    await transporter.sendMail({ 
-      from: process.env.SMTP_USER, 
-      to: MODO_TESTE ? EMAIL_TESTE_CLIENTE : data.email, 
-      subject: `${MODO_TESTE ? "[TESTE] " : ""}Sua inscrição foi recebida | TECNOISO`, 
-      html: shell(confirmation), 
-      text: `Olá, ${data.nome}. Recebemos seus dados para o treinamento TECNOISO. Nossa equipe entrará em contato em breve.`,
-      attachments: anexosImagens
-    })
+    // 2. Envia e-mail de notificação
+    try {
+      await transporter.sendMail({ 
+        from: process.env.SMTP_USER, 
+        to: MODO_TESTE ? EMAIL_TESTE : DESTINATARIOS_INTERNOS, 
+        bcc: MODO_TESTE ? undefined : COPIA_OCULTA, 
+        replyTo: data.email, 
+        subject: `${MODO_TESTE ? "[TESTE] " : ""}Nova inscrição (${data.tipoCliente}) | Treinamento TECNOISO`, 
+        html: shell(details), 
+        text: `Nova inscrição de ${data.nome} (${data.email}) - ${data.tipoCliente}.`,
+        attachments: anexosImagens
+      })
+      console.log("[ROUTE] ✅ E-mail de notificação enviado")
+    } catch (err) {
+      console.error("[ROUTE] ❌ Falha ao enviar notificação:", err)
+    }
+    
+    // 3. Envia e-mail de confirmação
+    try {
+      await transporter.sendMail({ 
+        from: process.env.SMTP_USER, 
+        to: MODO_TESTE ? EMAIL_TESTE_CLIENTE : data.email, 
+        subject: `${MODO_TESTE ? "[TESTE] " : ""}Sua inscrição foi recebida | TECNOISO`, 
+        html: shell(confirmation), 
+        text: `Olá, ${data.nome}. Recebemos seus dados para o treinamento TECNOISO. Nossa equipe entrará em contato em breve.`,
+        attachments: anexosImagens
+      })
+      console.log("[ROUTE] ✅ E-mail de confirmação enviado para", data.email)
+    } catch (err) {
+      console.error("[ROUTE] ❌ Falha ao enviar confirmação:", err)
+    }
     
     return NextResponse.json({ success: true })
   } catch (error) { 
