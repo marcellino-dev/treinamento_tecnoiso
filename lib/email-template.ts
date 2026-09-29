@@ -29,7 +29,7 @@ export const shell = (content: string) => `<!doctype html><html lang="pt-BR"><bo
 export const escapeHtml = (value: string) => value.replace(/[&<>\"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" })[character] || character)
 
 // ============================================
-// CONVITE DO GRUPO DO WHATSAPP
+// CONVITE DO GRUPO DO WHATSAPP (mesmo visual dos outros)
 // ============================================
 const LINK_WHATSAPP = "https://chat.whatsapp.com/EF6ZttIWVMm4AwiCoGC5i2?mode=gi_t"
 
