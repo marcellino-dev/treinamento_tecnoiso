@@ -2,12 +2,16 @@ import { NextResponse } from "next/server"
 import nodemailer from "nodemailer"
 import { google } from "googleapis"
 import path from "path"
+import {
+  montarEmailConvite,
+  montarTextoPlanoConvite,
+  anexosImagens as anexosImagensConvite,
+} from "@/lib/email-template"
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const digitsOnly = (value: string) => value.replace(/\D/g, "")
 const escapeHtml = (value: string) => value.replace(/[&<>\"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" })[character] || character)
 
-// Modo de teste: enquanto for true, todos os e-mails vão apenas para EMAIL_TESTE
 const MODO_TESTE = false
 const EMAIL_TESTE = "mclsouza1613ad@gmail.com"
 const EMAIL_TESTE_CLIENTE = "marcelinosouza.dev@gmail.com"
@@ -233,9 +237,24 @@ export async function POST(request: Request) {
       console.error("[ROUTE] ❌ Falha ao enviar confirmação:", err)
     }
     
+    // 4. 🆕 Envia e-mail de convite do WhatsApp
+    try {
+      await transporter.sendMail({ 
+        from: process.env.SMTP_USER, 
+        to: MODO_TESTE ? EMAIL_TESTE_CLIENTE : data.email, 
+        subject: `${MODO_TESTE ? "[TESTE] " : ""}Entre no grupo do WhatsApp | Treinamento TECNOISO`, 
+        html: montarEmailConvite(data.nome), 
+        text: montarTextoPlanoConvite(data.nome),
+        attachments: anexosImagensConvite
+      })
+      console.log("[ROUTE] ✅ E-mail de convite do WhatsApp enviado para", data.email)
+    } catch (err) {
+      console.error("[ROUTE] ❌ Falha ao enviar convite do WhatsApp:", err)
+    }
+    
     return NextResponse.json({ success: true })
   } catch (error) { 
-    console.error("[v0] Falha no envio SMTP:", error)
+    console.error("[v0] Falha geral no POST:", error)
     return NextResponse.json({ error: "Falha ao enviar inscrição" }, { status: 500 }) 
   }
 }
